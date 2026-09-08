@@ -723,6 +723,16 @@ def update_daily_report(raw_date=None):
     except Exception as e:
         print(f"⚠️ Google Drive sync skipped: {e}")
 
+    # 7. Auto-push to GitHub Pages for 24/7 Permanent Web Portal
+    try:
+        import subprocess
+        subprocess.run(["git", "add", "index.html", "styles.css", "app.js", "total_summary_report.json"], check=False)
+        subprocess.run(["git", "commit", "-m", f"Auto-update reports for date {target_date_display}"], check=False)
+        subprocess.run(["git", "push", "origin", "main"], check=False)
+        print("🚀 Auto-pushed latest data to GitHub Pages (Live 24/7 Web Portal) successfully!")
+    except Exception as e:
+        print(f"⚠️ GitHub Pages auto-push skipped: {e}")
+
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else None
     update_daily_report(target)
