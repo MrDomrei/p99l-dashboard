@@ -1,0 +1,8 @@
+.env
+.DS_Store
+bin/
+archive/
+Google_Drive_P99L/
+total_summary_report_08_2026.json
+*.pyc
+__pycache__/

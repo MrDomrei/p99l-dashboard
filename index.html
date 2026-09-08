@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>P99L Admin - Dashboard & Report (September 2026)</title>
+    <!-- Khmer & Modern English Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css?v=21">
+</head>
+<body>
+    <!-- Login Screen Overlay (Authentication Modal) -->
+    <div id="login-overlay" class="login-screen-wrapper" style="display: none;">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo-icon">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <h2>P99L ADMIN PORTAL</h2>
+                <p>ប្រព័ន្ធគ្រប់គ្រង និងតាមដានរបាយការណ៍ឆ្នោត</p>
+            </div>
+
+            <form id="login-form" onsubmit="handleLoginSubmit(event)">
+                <div class="login-field-group">
+                    <label for="login-username"><i class="fa-solid fa-user text-green"></i> ឈ្មោះអ្នកប្រើប្រាស់ (Username)</label>
+                    <div class="input-with-icon">
+                        <input type="text" id="login-username" placeholder="បញ្ចូល Username..." required autocomplete="username">
+                    </div>
+                </div>
+
+                <div class="login-field-group">
+                    <label for="login-password"><i class="fa-solid fa-lock text-green"></i> លេខសម្ងាត់ (Password)</label>
+                    <div class="input-with-icon">
+                        <input type="password" id="login-password" placeholder="បញ្ចូល Password..." required autocomplete="current-password">
+                        <i class="fa-solid fa-eye password-toggle-btn" id="toggle-pw-visibility" onclick="togglePasswordVisibility()"></i>
+                    </div>
+                </div>
+
+                <div id="login-error-msg" class="login-error" style="display: none;">
+                    <i class="fa-solid fa-circle-exclamation"></i> ឈ្មោះអ្នកប្រើប្រាស់ ឬលេខសម្ងាត់មិនត្រឹមត្រូវឡើយ!
+                </div>
+
+                <button type="submit" class="btn-login-submit" id="btn-login">
+                    <i class="fa-solid fa-right-to-bracket"></i> ចូលប្រើប្រព័ន្ធ (Login)
+                </button>
+            </form>
+
+            <div style="text-align: center; font-size: 0.78rem; color: #94a3b8; margin-top: 0.5rem;">
+                <span>🔒 ប្រព័ន្ធសុវត្ថិភាពទិន្នន័យផ្ទៃក្នុង • P99L System</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container" id="main-app-container">
+        <!-- Mobile Sidebar Backdrop Overlay -->
+        <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleMobileSidebar()"></div>
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <div class="brand-text">
+                    <h2>P99L ADMIN</h2>
+                    <span>Lottery System</span>
+                </div>
+                <button class="mobile-close-sidebar-btn" onclick="toggleMobileSidebar()" title="បិទ Menu">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="#dash-section" class="nav-item active" id="nav-dash" onclick="showSection('dash', event); closeMobileSidebar();">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Dashboard (ស៊ីខាតប្រចាំថ្ងៃ)</span>
+                </a>
+                <a href="#report-section" class="nav-item" id="nav-report" onclick="showSection('report', event); closeMobileSidebar();">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>Report (របាយការណ៍)</span>
+                </a>
+                <a href="#monthly-report-section" class="nav-item" id="nav-monthly-report" onclick="showSection('monthly-report', event); closeMobileSidebar();">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>Monthly Report (ស៊ីខាតប្រចាំខែ)</span>
+                </a>
+                <a href="#sang-report-section" class="nav-item" id="nav-sang-report" onclick="showSection('sang-report', event); closeMobileSidebar();">
+                    <i class="fa-solid fa-arrows-split-up-and-left"></i>
+                    <span>លេខសាង (Sang Report)</span>
+                </a>
+                <a href="#table-section" class="nav-item" id="nav-table" onclick="showSection('table', event); closeMobileSidebar();">
+                    <i class="fa-solid fa-table-cells"></i>
+                    <span>តារាងលម្អិត (32 Cols)</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="user-badge">
+                        <i class="fa-solid fa-user-shield"></i>
+                        <div class="user-info">
+                            <strong id="logged-in-user">MrAdmin</strong>
+                            <span id="user-role-text">Admin Account</span>
+                        </div>
+                    </div>
+                    <button class="btn-logout" onclick="logoutUser()" title="ចាកចេញ (Logout)">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Mobile Sticky Top Bar -->
+            <div class="mobile-top-bar">
+                <button class="mobile-menu-toggle-btn" onclick="toggleMobileSidebar()" title="Menu">
+                    <i class="fa-solid fa-bars-staggered"></i>
+                </button>
+                <div class="mobile-brand-name">
+                    <i class="fa-solid fa-chart-pie text-green"></i>
+                    <span>P99L ADMIN</span>
+                </div>
+                <a href="https://drive.google.com/drive/folders/1jyxqDx35kg6OrePSnLqLNeyBCAIyUb9m" target="_blank" class="mobile-drive-link" title="Google Drive">
+                    <i class="fa-brands fa-google-drive"></i>
+                </a>
+            </div>
+
+            <!-- Desktop Header -->
+            <header class="top-header">
+                <div class="header-title">
+                    <h1 id="header-main-title">P99L Dashboard - សរុបស៊ីខាតប្រចាំថ្ងៃ (August 2026)</h1>
+                    <p id="header-sub-title">គំនូសតាង (Chart by Date) និង តារាងសរុបស៊ីខាតប្រចាំថ្ងៃ (01 ដល់ 25/08/2026)</p>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="global-search" placeholder="ស្វែងរកតាមកូដ ឬឈ្មោះ...">
+                    </div>
+                    <a href="https://drive.google.com/drive/folders/1jyxqDx35kg6OrePSnLqLNeyBCAIyUb9m" target="_blank" class="btn btn-outline" style="color: #1e293b; border-color: #cbd5e1; text-decoration: none; font-weight: 700; gap: 8px;" title="បើក Google Drive Folder">
+                        <i class="fa-brands fa-google-drive" style="color: #1a73e8; font-size: 1.1rem;"></i> Google Drive
+                    </a>
+                    <button class="btn btn-export" onclick="downloadExcelReport()">
+                        <i class="fa-solid fa-file-excel"></i> នាំចេញជា Excel (.xlsx)
+                    </button>
+                </div>
+            </header>
+
+            <!-- SECTION 1: DASHBOARD VIEW (CARDS + 2-BAR CHART + DAILY SUMMARY) -->
+            <div id="dash-section" class="view-section">
+                <!-- Auto Select / Search SuperSenior Filter Bar -->
+                <div class="glass-card supersenior-filter-card" style="margin-bottom: 1.5rem;">
+                    <!-- Filter Header -->
+                    <div class="ss-card-header">
+                        <div class="ss-title-group">
+                            <div class="ss-crown-badge">
+                                <i class="fa-solid fa-crown"></i>
+                            </div>
+                            <div>
+                                <h3 class="ss-heading">ជ្រើសរើស SuperSenior</h3>
+                                <span class="ss-active-tag" id="supersenior-status-text">បង្ហាញទិន្នន័យ៖ SuperSenior ទាំងអស់ (ALL)</span>
+                            </div>
+                        </div>
+
+                        <!-- Currency Toggle Switcher -->
+                        <div class="currency-toggle-group">
+                            <button class="btn-currency active" id="btn-chart-khr" onclick="setChartCurrency('KHR')">៛ KHR</button>
+                            <button class="btn-currency" id="btn-chart-usd" onclick="setChartCurrency('USD')">$ USD</button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Input Controls -->
+                    <div class="ss-controls-row">
+                        <!-- Auto-Complete Search Input -->
+                        <div class="ss-search-field">
+                            <i class="fa-solid fa-magnifying-glass ss-field-icon"></i>
+                            <input 
+                                type="text" 
+                                id="supersenior-auto-input" 
+                                list="supersenior-datalist" 
+                                placeholder="🔍 វាយឈ្មោះ ឬកូដ SuperSenior (Auto-Search)..." 
+                                class="ss-modern-input"
+                                oninput="onSuperSeniorAutoSelectInput(this.value)"
+                            >
+                            <datalist id="supersenior-datalist">
+                                <!-- Populated dynamically -->
+                            </datalist>
+                        </div>
+
+                        <!-- Dropdown Select Box -->
+                        <div class="ss-dropdown-field">
+                            <i class="fa-solid fa-user-shield ss-field-icon"></i>
+                            <select id="supersenior-dropdown" class="ss-modern-select" onchange="onSuperSeniorFilterChange(this.value)">
+                                <option value="ALL">👑 SuperSenior ទាំងអស់ (All)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Quick Pick Badges / Pills -->
+                    <div class="ss-quick-pills-row">
+                        <span class="ss-quick-label"><i class="fa-solid fa-bolt"></i> ជ្រើសរើសលឿន៖</span>
+                        <div class="ss-pills-wrapper" id="quick-ss-pills">
+                            <!-- Populated dynamically via app.js -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top KPI Metric Cards (4 Modern FinTech Cards) -->
+                <div class="dashboard-grid-4">
+                    <!-- Card 1: Net Win/Loss -->
+                    <div class="metric-card-modern card-theme-green">
+                        <div class="card-header">
+                            <span>ស៊ីខាតសរុបប្រចាំខែ (Total Net Win/Loss)</span>
+                            <div class="card-icon"><i class="fa-solid fa-scale-balanced"></i></div>
+                        </div>
+                        <div class="card-value" id="dash-month-net-khr">0 ៛</div>
+                        <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                            <span class="subtext" id="dash-month-net-usd">USD: $0.00</span>
+                            <span class="sub-badge-chip pos" id="dash-daily-avg-badge"><i class="fa-solid fa-chart-line"></i> មធ្យម: 0 ៛/ថ្ងៃ</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Total Sales -->
+                    <div class="metric-card-modern card-theme-purple">
+                        <div class="card-header">
+                            <span>លុយលក់សរុបប្រចាំខែ (Total Month Sales)</span>
+                            <div class="card-icon"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+                        </div>
+                        <div class="card-value" id="dash-month-sales-khr">0 ៛</div>
+                        <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                            <span class="subtext" id="dash-month-sales-usd">USD: $0.00</span>
+                            <span class="sub-badge-chip neutral" id="dash-sales-days-badge"><i class="fa-solid fa-calendar-check"></i> សរុប 0 ថ្ងៃ</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Profit Margin % -->
+                    <div class="metric-card-modern card-theme-amber">
+                        <div class="card-header">
+                            <span>អត្រាចំណេញសុទ្ធ (Profit Margin %)</span>
+                            <div class="card-icon"><i class="fa-solid fa-percent"></i></div>
+                        </div>
+                        <div class="card-value" id="dash-profit-margin-rate" style="color: #d97706;">0.00%</div>
+                        <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                            <span class="subtext" style="color: #64748b;">(ស៊ីខាត / លក់)</span>
+                            <span class="sub-badge-chip amber" id="dash-peak-day-badge"><i class="fa-solid fa-trophy"></i> ថ្ងៃចំណេញខ្ពស់: -</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 4: Sang Settlement Deduction -->
+                    <div class="metric-card-modern card-theme-rose">
+                        <div class="card-header">
+                            <span>លេខសាងទូទាត់សរុប (Sang Settlement)</span>
+                            <div class="card-icon"><i class="fa-solid fa-arrows-split-up-and-left"></i></div>
+                        </div>
+                        <div class="card-value" id="dash-sang-total-khr" style="color: #e11d48;">0 ៛</div>
+                        <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                            <span class="subtext" id="dash-sang-total-usd">USD: $0.00</span>
+                            <span class="sub-badge-chip neg" id="dash-sang-impact-badge"><i class="fa-solid fa-bolt"></i> គុណនឹង (-1)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2-Column Analytics Charts Row (65% Daily Bar/Line vs 35% 8-Lottery Donut) -->
+                <div class="dash-charts-grid">
+                    <!-- Column 1: Daily Comparison Dual-Bar Chart -->
+                    <div class="glass-card" style="margin-top: 0;">
+                        <div class="chart-header-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <h3><i class="fa-solid fa-chart-column text-blue"></i> គំនូសតាងប្រៀបធៀប លុយលក់ & ស៊ីខាត ប្រចាំថ្ងៃ</h3>
+                            <div style="display: flex; align-items: center; gap: 12px; font-size: 0.82rem; font-weight: 700;">
+                                <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; background: #6366f1; border-radius: 2px;"></span> លុយលក់</span>
+                                <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; background: #16a34a; border-radius: 2px;"></span> ស៊ីខាត ចំណេញ</span>
+                                <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; background: #dc2626; border-radius: 2px;"></span> ស៊ីខាត ខាត</span>
+                            </div>
+                        </div>
+                        <div class="chart-body-container" style="height: 350px;">
+                            <canvas id="combinedDailyChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: 8-Lottery Market Share Donut Chart -->
+                    <div class="glass-card" style="margin-top: 0; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div class="chart-header-bar">
+                            <h3><i class="fa-solid fa-chart-pie text-green"></i> ចំណែកទីផ្សារឆ្នោតទាំង ៨ (Market Share)</h3>
+                        </div>
+                        <div style="position: relative; height: 210px; display: flex; align-items: center; justify-content: center;">
+                            <canvas id="lotteryDonutChart"></canvas>
+                        </div>
+                        <!-- Donut Custom Legend -->
+                        <div class="donut-legend-list" id="donut-custom-legend">
+                            <!-- Populated dynamically via app.js -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top 5 SuperSenior Leaderboard Widget -->
+                <div class="glass-card" style="margin-top: 1.5rem;" id="dash-leaderboard-section">
+                    <div class="chart-header-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #fef08a, #eab308); color: #713f12; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                <i class="fa-solid fa-ranking-star"></i>
+                            </div>
+                            <h3 style="margin: 0;">តារាងចំណាត់ថ្នាក់ SuperSenior ឆ្នើមប្រចាំខែ (Top 5 Performers)</h3>
+                        </div>
+                        <!-- Leaderboard metric switcher -->
+                        <div class="currency-toggle-group">
+                            <button class="btn-currency active" id="btn-lb-sales" onclick="setLeaderboardMode('sales')">🏆 តាមលុយលក់ (Sales)</button>
+                            <button class="btn-currency" id="btn-lb-net" onclick="setLeaderboardMode('net')">💎 តាមស៊ីខាត (Net)</button>
+                        </div>
+                    </div>
+                    <div class="leaderboard-grid" id="dash-leaderboard-items">
+                        <!-- Dynamically populated top 5 cards -->
+                    </div>
+                </div>
+
+                <!-- Daily Net Summary Table (សរុបស៊ីខាតប្រចាំថ្ងៃ) -->
+                <div class="glass-card" style="margin-top: 1.5rem;">
+                    <div class="chart-header-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 32px; height: 32px; border-radius: 8px; background: #e8f5e9; color: #2e7d32; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                <i class="fa-solid fa-list-check"></i>
+                            </div>
+                            <h3 style="margin: 0;">តារាងសរុបស៊ីខាតប្រចាំថ្ងៃ (Daily Net Summary Table)</h3>
+                        </div>
+                        
+                        <!-- List box សម្រាប់ជ្រើសរើសប្រភេទឆ្នោត -->
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-weight: 700; color: #0f172a; font-size: 0.88rem;"><i class="fa-solid fa-dice"></i> ជ្រើសរើសប្រភេទឆ្នោត៖</span>
+                            <select id="dash-lottery-dropdown" class="date-select-picker" onchange="onDashLotteryChange(this.value)">
+                                <option value="ALL">🌟 គ្រប់ប្រភេទ (ALL)</option>
+                                <option value="MHSB">⚡ លាភមហាសម្បត្តិ (MHSB)</option>
+                                <option value="MC">🏆 មហាឈ្នះ (MC)</option>
+                                <option value="MT">🏢 មហាទេព (MT)</option>
+                                <option value="KH">🇰🇭 ឆ្នោតខ្មែរ (KH)</option>
+                                <option value="TC">🎁 ទិញឈ្នះ (TC)</option>
+                                <option value="SC">🎯 ឆ្នោត (SC)</option>
+                                <option value="TH">🇹🇭 ឆ្នោត (TH)</option>
+                                <option value="KP">🌊 ឆ្នោត កំពត (KP)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-responsive" style="max-height: 1220px;">
+                        <table class="p99l-green-table">
+                            <thead>
+                                <tr class="header-green-bar">
+                                    <th>កាលបរិច្ឆេទ</th>
+                                    <th>លុយលក់សរុប (KHR)</th>
+                                    <th>លុយលក់សរុប (USD)</th>
+                                    <th>ស៊ីខាតប្រចាំថ្ងៃ (KHR) (ធៀបថ្ងៃចាស់)</th>
+                                    <th>ស៊ីខាតប្រចាំថ្ងៃ (USD) (ធៀបថ្ងៃចាស់)</th>
+                                    <th class="text-center" style="min-width: 110px;">អត្រាចំណេញ (%)</th>
+                                    <th class="text-center" style="min-width: 120px;">ស្ថានភាព</th>
+                                </tr>
+                            </thead>
+                            <tbody id="daily-summary-body">
+                                <!-- Dynamic Daily Summary Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- SECTION 2: NEW REPORT VIEW (PANEL 1: DAILY & PANEL 2: CUMULATIVE) -->
+            <div id="report-section" class="view-section" style="display: none;">
+                
+                <!-- Report Filter Bar -->
+                <div class="glass-card" style="margin-bottom: 1.25rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+                        <div style="display: flex; align-items: center; gap: 18px; flex-wrap: wrap;">
+                            <!-- Date Selector -->
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-weight: 700; color: #0f172a; white-space: nowrap;"><i class="fa-solid fa-calendar-day"></i> ជ្រើសរើសថ្ងៃខែ៖</span>
+                                <select id="report-date-dropdown" class="date-select-picker" onchange="onReportFilterChange()">
+                                    <!-- Populated dynamically via app.js -->
+                                </select>
+                            </div>
+
+                            <!-- SuperSenior List Dropdown Box -->
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-weight: 700; color: #0f172a; white-space: nowrap;"><i class="fa-solid fa-crown"></i> ជ្រើសរើស SuperSenior៖</span>
+                                <select id="report-supersenior-dropdown" class="date-select-picker" style="min-width: 260px;" onchange="onReportSuperSeniorDropdownChange(this.value)">
+                                    <option value="ALL">👑 SuperSenior ទាំងអស់ (ALL)</option>
+                                    <!-- Populated dynamically via app.js -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Currency Toggle for Report View -->
+                        <div class="currency-toggle-group">
+                            <button class="btn-currency active" id="btn-report-khr" onclick="setReportCurrency('KHR')">៛ KHR</button>
+                            <button class="btn-currency" id="btn-report-usd" onclick="setReportCurrency('USD')">$ USD</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ផ្ទាំងទី ១ ៖ របាយការណ៍ប្រចាំថ្ងៃ (Daily Report) -->
+                <div class="glass-card" style="margin-bottom: 1.5rem;">
+                    <div class="chart-header-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <h3>
+                            <i class="fa-solid fa-calendar-check text-green"></i> 
+                            ផ្ទាំងទី ១ ៖ របាយការណ៍ប្រចាំថ្ងៃ (Daily Report) 
+                            <span id="report-panel1-badge" style="font-size: 0.85rem; background: #e8f5e9; color: #2e7d32; padding: 4px 10px; border-radius: 6px; margin-left: 8px; font-weight: 700;"></span>
+                        </h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="p99l-green-table" id="report-daily-table">
+                            <thead id="report-daily-thead">
+                                <!-- Dynamic Headers with Auto-hide 1D..4D if 0 -->
+                            </thead>
+                            <tbody id="report-daily-tbody">
+                                <!-- Populated dynamically (9 Rows: MHSB, MC, MT, TC, KH, SC, TH, KP, TOTAL) -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Sang & Final Daily Settlement Summary (គុណនឹង -1) -->
+                    <div id="report-daily-sang-summary"></div>
+                </div>
+
+                <!-- ផ្ទាំងទី ២ ៖ របាយការណ៍សរុប (Cumulative Month-to-Date: 01 ដល់ ថ្ងៃជ្រើសរើស) -->
+                <div class="glass-card" style="margin-bottom: 1.5rem;">
+                    <div class="chart-header-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <h3>
+                            <i class="fa-solid fa-chart-line-up text-blue"></i> 
+                            ផ្ទាំងទី ២ ៖ របាយការណ៍សរុប (Cumulative Month-to-Date) 
+                            <span id="report-panel2-badge" style="font-size: 0.85rem; background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 6px; margin-left: 8px; font-weight: 700;"></span>
+                        </h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="p99l-green-table" id="report-cumulative-table">
+                            <thead id="report-cumulative-thead">
+                                <!-- Dynamic Headers with Auto-hide 1D..4D if 0 -->
+                            </thead>
+                            <tbody id="report-cumulative-tbody">
+                                <!-- Populated dynamically (9 Rows: MHSB, MC, MT, TC, KH, SC, TH, KP, TOTAL) -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Sang & Final Cumulative Settlement Summary (គុណនឹង -1) -->
+                    <div id="report-cumulative-sang-summary"></div>
+                </div>
+
+            </div>
+
+            <!-- SECTION 4: MONTHLY REPORT VIEW (តារាងស៊ីខាតសរុបប្រចាំខែ 100%) -->
+            <div id="monthly-report-section" class="view-section" style="display: none;">
+                
+                <!-- Monthly Filter & Export Bar -->
+                <div class="glass-card" style="margin-bottom: 1.25rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+                        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; flex: 1;">
+                            <!-- Month Badge & Range -->
+                            <div class="monthly-header-badge-group" style="display: flex; align-items: center; gap: 12px;">
+                                <div class="monthly-crown-icon" style="width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #15803d, #22c55e); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; box-shadow: 0 4px 10px rgba(34,197,94,0.3);">
+                                    <i class="fa-solid fa-calendar-check"></i>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0 0 2px 0;">
+                                        តារាងស៊ីខាតសរុបប្រចាំខែ 100%
+                                    </h3>
+                                    <span id="monthly-report-period-badge" style="font-size: 0.85rem; font-weight: 700; color: #166534; background: #dcfce7; padding: 3px 10px; border-radius: 6px; display: inline-block;">
+                                        AUGUST-2026 (សរុប ២៩ ថ្ងៃ)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- SuperSenior Search Box inside Monthly Report -->
+                            <div style="display: flex; align-items: center; gap: 8px; flex: 1; max-width: 380px;">
+                                <div class="ss-search-field" style="width: 100%;">
+                                    <i class="fa-solid fa-magnifying-glass ss-field-icon"></i>
+                                    <input 
+                                        type="text" 
+                                        id="monthly-ss-search-input" 
+                                        placeholder="🔍 ស្វែងរក SuperSenior (កូដ ឬឈ្មោះ)..." 
+                                        class="ss-modern-input"
+                                        oninput="onMonthlySuperSeniorSearch(this.value)"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons: Export Excel -->
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <button class="btn btn-export" onclick="exportMonthlyReportExcel()">
+                                <i class="fa-solid fa-file-excel"></i> នាំចេញតារាងខែ (.xlsx)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Net Matrix Table (2-Tier Header) -->
+                <div class="glass-card">
+                    <div class="table-responsive table-no-vscroll">
+                        <table class="monthly-matrix-table" id="monthly-report-table">
+                            <thead>
+                                <!-- Tier 1: Lottery Group Headers -->
+                                <tr class="tier1-header">
+                                    <th rowspan="2" class="sticky-col col-no">NO</th>
+                                    <th rowspan="2" class="sticky-col col-ss">Super Senior</th>
+                                    <th rowspan="2" class="sticky-col col-nick">Nick Name</th>
+                                    <th colspan="2" class="lottery-group-th">លាភមហាសម្បត្តិ (LMHSB)</th>
+                                    <th colspan="2" class="lottery-group-th">មហាទេព (MT)</th>
+                                    <th colspan="2" class="lottery-group-th">ទិញឈ្នះ (TC)</th>
+                                    <th colspan="2" class="lottery-group-th">មហាឈ្នះ (MC)</th>
+                                    <th colspan="2" class="lottery-group-th">សប្បាយឈ្នះ (SC)</th>
+                                    <th colspan="2" class="lottery-group-th">ឆ្នោតខ្មែរ (KH)</th>
+                                    <th colspan="2" class="lottery-group-th">ឆ្នោតថៃ (TH)</th>
+                                    <th colspan="2" class="lottery-group-th">ឆ្នោតកំពត (KP)</th>
+                                    <th colspan="2" class="grand-total-group-th">សរុប (Grand Total)</th>
+                                    <th rowspan="2" class="sticky-col-right col-ss-right">Super Senior</th>
+                                </tr>
+                                <!-- Tier 2: Currency Sub-Headers (KHR / USD) -->
+                                <tr class="tier2-header">
+                                    <th>(KHR)</th><th>(USD)</th>
+                                    <th>(KHR)</th><th>(USD)</th>
+                                    <th>(KHR)</th><th>(USD)</th>
+                                    <th>(KHR)</th><th>(USD)</th>
+                                    <th>(KHR)</th><th>(USD)</th>
+                                    <th>(KHR)</th><th>(USD)</th>
+                                    <th>(KHR)</th><th>(USD)</th>
+                                    <th>(KHR)</th><th>(USD)</th>
+                                    <th>(KHR)</th><th>(USD)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthly-report-tbody">
+                                <!-- Populated dynamically via app.js -->
+                            </tbody>
+                            <tfoot id="monthly-report-tfoot">
+                                <!-- Dynamic TOTAL Row -->
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ផ្ទាំងទី ២ ៖ របាយការណ៍លម្អិតតាម SuperSenior នីមួយៗ (SuperSenior Ranking & Breakdown) -->
+                <div class="glass-card" style="margin-top: 1.5rem;">
+                    <div class="chart-header-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">
+                                <i class="fa-solid fa-crown" style="color: #d97706;"></i> 
+                                របាយការណ៍តាម SuperSenior នីមួយៗ (SuperSenior Ranking & Breakdown)
+                            </h3>
+                            <span id="monthly-p3-badge" style="font-size: 0.85rem; background: #fef3c7; color: #d97706; padding: 4px 10px; border-radius: 6px; font-weight: 700;"></span>
+                        </div>
+
+                        <!-- Date & Currency Controls for SuperSenior Breakdown -->
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <!-- Dedicated Date Selector -->
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-weight: 700; color: #0f172a; white-space: nowrap; font-size: 0.9rem;">
+                                    <i class="fa-solid fa-calendar-day" style="color: #d97706;"></i> ជ្រើសរើសថ្ងៃ៖
+                                </span>
+                                <select id="monthly-p3-date-dropdown" class="date-select-picker" style="border-color: #f59e0b; font-weight: 700;" onchange="onMonthlyP3DateChange(this.value)">
+                                    <!-- Populated dynamically via app.js -->
+                                </select>
+                            </div>
+
+                            <!-- Currency Toggle Group -->
+                            <div class="currency-toggle-group">
+                                <button class="btn-currency active" id="btn-monthly-p3-khr" onclick="setMonthlyP3Currency('KHR')">៛ KHR</button>
+                                <button class="btn-currency" id="btn-monthly-p3-usd" onclick="setMonthlyP3Currency('USD')">$ USD</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="p99l-green-table" id="monthly-supersenior-table">
+                            <thead id="monthly-supersenior-thead">
+                                <!-- Dynamic Headers with Auto-hide 1D..4D if 0 -->
+                            </thead>
+                            <tbody id="monthly-supersenior-tbody">
+                                <!-- Populated dynamically with SuperSenior Ranking List -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- SECTION 4: SAN-REPORT (លេខសាង - របាយការណ៍សរុបរួម សាង SUPER SENIOR) -->
+            <div id="sang-report-section" class="view-section" style="display: none;">
+                
+                <!-- Header Banner Card -->
+                <div class="card mb-4" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; border: 1px solid #334155; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+                    <div class="card-body" style="padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+                                <span style="background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid rgba(74, 222, 128, 0.3);">
+                                    <i class="fa-solid fa-arrows-split-up-and-left"></i> P99L SANG REPORT
+                                </span>
+                                <span id="sang-period-badge" style="font-size: 0.85rem; font-weight: 700; color: #166534; background: #dcfce7; padding: 3px 10px; border-radius: 6px; display: inline-block;">
+                                    SEPTEMBER-2026
+                                </span>
+                            </div>
+                            <h2 style="font-size: 1.4rem; font-weight: 700; margin: 0; color: #f8fafc; font-family: 'Kantumruy Pro', sans-serif;">
+                                📋 របាយការណ៍សាង — របាយការណ៍សរុបរួម សាង (Super Senior)
+                            </h2>
+                            <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 0.85rem;">
+                                ទិន្នន័យស្រង់ចេញផ្ទាល់ពី System P99L (admin.p99l.com) មាតិកា ៖ របាយការណ៍សាង ➡️ របាយការណ៍សរុបរួម សាង
+                            </p>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <button onclick="exportSangExcel()" class="btn-export-excel" style="background: #16a34a; color: #fff; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 600; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3); transition: all 0.2s;">
+                                <i class="fa-solid fa-file-excel"></i> Export Sheet លេខសាង
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Controls & Search Bar -->
+                <div class="card mb-4" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+                        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                            <!-- Date Selector -->
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-weight: 700; color: #0f172a; font-size: 0.9rem;"><i class="fa-solid fa-calendar-days" style="color: #16a34a;"></i> ជ្រើសរើសថ្ងៃ៖</span>
+                                <select id="sang-date-dropdown" class="date-select-picker" style="padding: 7px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-family: 'Kantumruy Pro'; font-weight: 600;" onchange="onSangDateDropdownChange(this.value)">
+                                    <!-- Populated dynamically via app.js -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- SuperSenior Live Search Input -->
+                        <div style="position: relative; min-width: 320px;">
+                            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
+                            <input type="text" id="sang-search-input" placeholder="🔍 វាយស្វែងរក SuperSenior (Username/Nickname)..." 
+                                   oninput="onSangSearch(this.value)"
+                                   style="width: 100%; padding: 8px 12px 8px 36px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.88rem; font-family: 'Kantumruy Pro', sans-serif; outline: none; transition: border-color 0.2s;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI Summary Cards Row -->
+                <div class="kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                    <div class="kpi-card" style="background: #fff; border-radius: 12px; padding: 16px 20px; border: 1px solid #e2e8f0; border-left: 5px solid #16a34a; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="font-size: 0.82rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">💰 លុយលក់សាងសរុប (KHR)</div>
+                        <div id="sang-kpi-sales-khr" style="font-size: 1.4rem; font-weight: 700; color: #0f172a; font-family: 'Outfit', sans-serif;">0 ៛</div>
+                        <div id="sang-kpi-sales-usd" style="font-size: 0.85rem; font-weight: 600; color: #64748b; margin-top: 4px;">$ 0.00</div>
+                    </div>
+
+                    <div class="kpi-card" style="background: #fff; border-radius: 12px; padding: 16px 20px; border: 1px solid #e2e8f0; border-left: 5px solid #2563eb; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="font-size: 0.82rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">⚖️ ស៊ីខាតសាងសរុប (KHR)</div>
+                        <div id="sang-kpi-net-khr" style="font-size: 1.4rem; font-weight: 700; color: #16a34a; font-family: 'Outfit', sans-serif;">0 ៛</div>
+                        <div id="sang-kpi-net-usd" style="font-size: 0.85rem; font-weight: 600; color: #64748b; margin-top: 4px;">$ 0.00</div>
+                    </div>
+
+                    <div class="kpi-card" style="background: #fff; border-radius: 12px; padding: 16px 20px; border: 1px solid #e2e8f0; border-left: 5px solid #8b5cf6; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="font-size: 0.82rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">👥 SUPER SENIOR សរុប</div>
+                        <div id="sang-kpi-count" style="font-size: 1.4rem; font-weight: 700; color: #0f172a; font-family: 'Outfit', sans-serif;">0 នាក់</div>
+                        <div style="font-size: 0.85rem; font-weight: 600; color: #64748b; margin-top: 4px;">កម្រិត Super Senior (Online)</div>
+                    </div>
+
+                    <div class="kpi-card" style="background: #fff; border-radius: 12px; padding: 16px 20px; border: 1px solid #e2e8f0; border-left: 5px solid #f59e0b; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="font-size: 0.82rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">📅 កាលបរិច្ឆេទជ្រើសរើស</div>
+                        <div id="sang-kpi-date" style="font-size: 1.2rem; font-weight: 700; color: #0f172a; font-family: 'Outfit', sans-serif;">-</div>
+                        <div style="font-size: 0.85rem; font-weight: 600; color: #16a34a; margin-top: 4px;">របាយការណ៍សរុបរួម សាង</div>
+                    </div>
+                </div>
+
+                <!-- 32-Column Data Table Card -->
+                <div class="card" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); overflow: hidden;">
+                    <div class="table-responsive" style="max-height: 800px; overflow-x: auto; overflow-y: auto;">
+                        <table class="report-table" id="sang-report-table" style="width: 100%; border-collapse: collapse; min-width: 2200px;">
+                            <thead>
+                                <tr style="background: #2E7D32; color: #fff; font-family: 'Kantumruy Pro', sans-serif; font-size: 0.82rem; position: sticky; top: 0; z-index: 10;">
+                                    <th style="padding: 10px 8px; text-align: center; border: 1px solid #3b82f6;">NO</th>
+                                    <th style="padding: 10px 8px; text-align: center; border: 1px solid #3b82f6;">Date</th>
+                                    <th style="padding: 10px 8px; text-align: center; border: 1px solid #3b82f6;">កូដសមាជិក</th>
+                                    <th style="padding: 10px 8px; text-align: left; border: 1px solid #3b82f6; min-width: 130px;">ឈ្មោះ (Nickname)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយលក់ 1D(KHR)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយលក់ 2D(KHR)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយលក់ 3D(KHR)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយលក់ 4D(KHR)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយលក់ 1D(USD)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយលក់ 2D(USD)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយលក់ 3D(USD)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយលក់ 4D(USD)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយសង 1D(KHR)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយសង 2D(KHR)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយសង 3D(KHR)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយសង 4D(KHR)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយសង 1D(USD)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយសង 2D(USD)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយសង 3D(USD)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយសង 4D(USD)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6; background: #1b5e20;">លុយស៊ីខាត (KHR)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6; background: #1b5e20;">លុយស៊ីខាត (USD)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">បញ្ជីចាស់ (KHR)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">បញ្ជីចាស់ (USD)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយខ្លី (KHR)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយសង (KHR)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយខ្លី (USD)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">លុយសង (USD)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">តវ៉ា (KHR)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6;">តវ៉ា (USD)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6; background: #0f172a; color: #38bdf8;">ប្រាក់តុល្យភាពចុងក្រោយ (KHR)</th>
+                                    <th style="padding: 10px 8px; text-align: right; border: 1px solid #3b82f6; background: #0f172a; color: #38bdf8;">ប្រាក់តុល្យភាពចុងក្រោយ (USD)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sang-report-tbody">
+                                <!-- Populated dynamically via app.js -->
+                            </tbody>
+                            <tfoot id="sang-report-tfoot" style="position: sticky; bottom: 0; z-index: 10;">
+                                <!-- Dynamic TOTAL Row -->
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- SECTION 3: 32-COLUMN REPORT TABLE (RAW SYSTEM DATA ONLY) -->
+            <div id="table-section" class="view-section" style="display: none;">
+                
+                <!-- Dynamic Date & Filter Bar -->
+                <div class="date-selector-bar" style="margin-bottom: 1rem; background: #fff; padding: 12px 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                        <!-- Date Selector -->
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-weight: 700; color: #0f172a;"><i class="fa-solid fa-calendar-days"></i> ជ្រើសរើសថ្ងៃ៖</span>
+                            <select id="date-dropdown" class="date-select-picker" onchange="onDateDropdownChange(this.value)">
+                                <!-- Populated dynamically via app.js -->
+                            </select>
+                        </div>
+
+                        <!-- 8 Official Lottery Types Dropdown -->
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-weight: 700; color: #0f172a;"><i class="fa-solid fa-dice"></i> ប្រភេទឆ្នោត៖</span>
+                            <select id="lottery-type-dropdown" class="date-select-picker" onchange="onLotteryTypeChange(this.value)">
+                                <option value="ALL">🌟 គ្រប់ប្រភេទឆ្នោតទាំងអស់ (ALL)</option>
+                                <option value="MHSB">⚡ លាភមហាសម្បត្តិ (MHSB)</option>
+                                <option value="MC">🏆 មហាឈ្នះ (MC)</option>
+                                <option value="MT">🏢 មហាទេព (MT)</option>
+                                <option value="KH">🇰🇭 ឆ្នោតខ្មែរ (KH)</option>
+                                <option value="TC">🎁 ទិញឈ្នះ (TC)</option>
+                                <option value="SC">🎯 ឆ្នោត (SC)</option>
+                                <option value="TH">🇹🇭 ឆ្នោត (TH)</option>
+                                <option value="KP">🌊 ឆ្នោត កំពត (KP)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <label class="filter-toggle-label">
+                            <input type="checkbox" id="toggle-active-sales" onchange="onActiveSalesToggle(this.checked)">
+                            <span>⚡ បង្ហាញតែអ្នកមានការលក់ (Active Sales Only)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Level Selector Bar -->
+                <div class="level-tabs-bar">
+                    <button class="level-tab active" onclick="switchLevelTab('member')">
+                        <i class="fa-solid fa-user"></i> Member System Data
+                    </button>
+                    <button class="level-tab" onclick="switchLevelTab('master')">
+                        <i class="fa-solid fa-user-tie"></i> Master System Data
+                    </button>
+                    <button class="level-tab" onclick="switchLevelTab('senior')">
+                        <i class="fa-solid fa-user-gear"></i> Senior System Data
+                    </button>
+                    <button class="level-tab" onclick="switchLevelTab('super_senior')">
+                        <i class="fa-solid fa-user-crown"></i> Super Senior System Data
+                    </button>
+                </div>
+
+                <!-- Clean Organized 32-Column Table with 2-Tier Grouped Headers -->
+                <div class="table-section glass-card" style="margin-top: 1rem;">
+                    <div class="table-responsive">
+                        <table class="p99l-green-table organized-table">
+                            <thead>
+                                <!-- Tier 1: Group Category Headers -->
+                                <tr class="tier1-group-header">
+                                    <th colspan="4" class="group-info"><i class="fa-solid fa-address-card"></i> ព័ត៌មានទូទៅ (Info)</th>
+                                    <th colspan="4" class="group-sales-khr"><i class="fa-solid fa-money-bill-wave"></i> លុយលក់ KHR</th>
+                                    <th colspan="4" class="group-sales-usd"><i class="fa-solid fa-dollar-sign"></i> លុយលក់ USD</th>
+                                    <th colspan="4" class="group-win-khr"><i class="fa-solid fa-trophy"></i> លុយសង KHR</th>
+                                    <th colspan="4" class="group-win-usd"><i class="fa-solid fa-trophy"></i> លុយសង USD</th>
+                                    <th colspan="2" class="group-net"><i class="fa-solid fa-scale-balanced"></i> ស៊ីខាត (Net)</th>
+                                    <th colspan="2" class="group-old"><i class="fa-solid fa-clock-rotate-left"></i> បញ្ជីចាស់</th>
+                                    <th colspan="4" class="group-loan"><i class="fa-solid fa-hand-holding-dollar"></i> ខ្លី / សង</th>
+                                    <th colspan="2" class="group-protest"><i class="fa-solid fa-flag"></i> តវ៉ា</th>
+                                    <th colspan="2" class="group-total"><i class="fa-solid fa-wallet"></i> តុល្យភាពចុងក្រោយ</th>
+                                </tr>
+                                <!-- Tier 2: Sub-Column Headers -->
+                                <tr class="tier2-sub-header">
+                                    <!-- Info -->
+                                    <th>Date</th>
+                                    <th>ប្រភេទ</th>
+                                    <th>កូដសមាជិក</th>
+                                    <th>ឈ្មោះ</th>
+                                    <!-- Sales KHR -->
+                                    <th>1D</th><th>2D</th><th>3D</th><th>4D</th>
+                                    <!-- Sales USD -->
+                                    <th>1D</th><th>2D</th><th>3D</th><th>4D</th>
+                                    <!-- Wins KHR -->
+                                    <th>1D</th><th>2D</th><th>3D</th><th>4D</th>
+                                    <!-- Wins USD -->
+                                    <th>1D</th><th>2D</th><th>3D</th><th>4D</th>
+                                    <!-- Net -->
+                                    <th>KHR</th><th>USD</th>
+                                    <!-- Old -->
+                                    <th>KHR</th><th>USD</th>
+                                    <!-- Loan -->
+                                    <th>ខ្លី KHR</th><th>សង KHR</th><th>ខ្លី USD</th><th>សង USD</th>
+                                    <!-- Protest -->
+                                    <th>KHR</th><th>USD</th>
+                                    <!-- Final -->
+                                    <th>KHR</th><th>USD</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="green-report-body">
+                                <!-- Populated dynamically via app.js -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination Bar with Clickable Page Numbers -->
+                    <div class="pagination-container">
+                        <span id="page-info">បង្ហាញ 1 ដល់ 25</span>
+                        <div class="pagination-controls">
+                            <button class="btn btn-outline" id="btn-prev" onclick="prevPage()"><i class="fa-solid fa-chevron-left"></i> បកក្រោយ</button>
+                            <div id="page-numbers" class="page-numbers-bar"></div>
+                            <button class="btn btn-outline" id="btn-next" onclick="nextPage()">បន្ទាប់ <i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Bottom Navigation Bar (Fixed for Phone Screen) -->
+    <nav class="mobile-bottom-nav">
+        <a href="#dash-section" class="mobile-nav-item active" id="mob-nav-dash" onclick="showSection('dash', event)">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="#report-section" class="mobile-nav-item" id="mob-nav-report" onclick="showSection('report', event)">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+            <span>Report</span>
+        </a>
+        <a href="#monthly-report-section" class="mobile-nav-item" id="mob-nav-monthly-report" onclick="showSection('monthly-report', event)">
+            <i class="fa-solid fa-calendar-check"></i>
+            <span>Monthly</span>
+        </a>
+        <a href="#sang-report-section" class="mobile-nav-item" id="mob-nav-sang-report" onclick="showSection('sang-report', event)">
+            <i class="fa-solid fa-arrows-split-up-and-left"></i>
+            <span>សាងលេខ</span>
+        </a>
+        <a href="#table-section" class="mobile-nav-item" id="mob-nav-table" onclick="showSection('table', event)">
+            <i class="fa-solid fa-table-cells"></i>
+            <span>តារាង 32</span>
+        </a>
+    </nav>
+
+    <script src="app.js?v=21"></script>
+</body>
+</html>
