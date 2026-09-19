@@ -11,7 +11,7 @@ import zipfile
 def get_target_google_drive_dirs():
     dirs = [os.path.abspath(os.path.join(os.path.dirname(__file__), 'Google_Drive_P99L'))]
     
-    # Check macOS CloudStorage path
+    # 1. Check macOS CloudStorage path
     cs_base = os.path.expanduser('~/Library/CloudStorage')
     if os.path.exists(cs_base):
         try:
@@ -22,6 +22,20 @@ def get_target_google_drive_dirs():
                         dirs.append(gpath)
         except Exception:
             pass
+
+    # 2. Check Windows Google Drive paths
+    for drive_letter in ['G:', 'H:', 'I:', 'D:', 'E:']:
+        win_gpath = os.path.join(f"{drive_letter}\\", 'My Drive', 'Google_Drive_P99L')
+        if os.path.exists(win_gpath) and win_gpath not in dirs:
+            dirs.append(win_gpath)
+            
+    user_prof = os.environ.get('USERPROFILE', '')
+    if user_prof:
+        for possible in ['Google Drive\\My Drive\\Google_Drive_P99L', 'GoogleDrive-setharith@gmail.com\\My Drive\\Google_Drive_P99L']:
+            p = os.path.join(user_prof, possible)
+            if os.path.exists(p) and p not in dirs:
+                dirs.append(p)
+
     return dirs
 
 def sync_to_all_destinations():

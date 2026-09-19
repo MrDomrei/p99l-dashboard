@@ -332,7 +332,7 @@ def update_daily_report(raw_date=None):
             prev_m_en = MONTH_MAP.get(prev_month_num, ('month', '', ''))[0]
             archive_json_path = f'archive/total_summary_report_{prev_m_en}_{target_year_str}.json'
             with open(archive_json_path, 'w', encoding='utf-8') as af:
-                json.dump(main_json, af, ensure_ascii=False, indent=2)
+                json.dump(main_json, af, ensure_ascii=False, separators=(',', ':'))
             print(f"📦 Archived previous month ({prev_m_en}) dataset to {archive_json_path}")
             # Filter reports_obj for current month
             reports_obj = {k: v for k, v in reports_obj.items() if k.endswith(f"/{target_month_num}/{target_year_str}")}
@@ -349,7 +349,7 @@ def update_daily_report(raw_date=None):
     main_json["super_senior"] = reports_obj[sorted_dates[0]].get('super_senior', {}) if sorted_dates else {}
 
     with open(main_json_path, 'w', encoding='utf-8') as f:
-        json.dump(main_json, f, ensure_ascii=False, indent=2)
+        json.dump(main_json, f, ensure_ascii=False, separators=(',', ':'))
     print(f"\n✅ Updated total_summary_report.json with date {target_date_display} for month {m_upper} {target_year_str}")
 
     # 4. Rebuild / Update Master Excel Database for Active Month
@@ -718,7 +718,7 @@ def update_daily_report(raw_date=None):
     # 6. Auto-sync to Google Drive folder
     try:
         import subprocess
-        subprocess.run(["python3", "prepare_google_drive_folder.py"], check=True)
+        subprocess.run([sys.executable, "prepare_google_drive_folder.py"], check=True)
         print("☁️ Auto-synced all new reports to Google_Drive_P99L folder successfully!")
     except Exception as e:
         print(f"⚠️ Google Drive sync skipped: {e}")
