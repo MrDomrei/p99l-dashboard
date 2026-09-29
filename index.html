@@ -12,9 +12,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="styles.css?v=21">
+    <link rel="stylesheet" href="styles.css?v=23">
 </head>
 <body>
+    <!-- Fullscreen Modern Mobile Loading Overlay -->
+    <div id="global-loader-overlay" class="global-loader-overlay">
+        <div class="loader-content">
+            <div class="loader-spinner">
+                <i class="fa-solid fa-chart-pie loader-icon"></i>
+            </div>
+            <h3 class="loader-title">P99L ADMIN PORTAL</h3>
+            <p class="loader-subtitle" id="loader-status-text">កំពុងដំណើរការទាញយកទិន្នន័យ...</p>
+            <div class="loader-bar-wrapper">
+                <div class="loader-bar-fill"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Login Screen Overlay (Authentication Modal) -->
     <div id="login-overlay" class="login-screen-wrapper" style="display: none;">
         <div class="login-card">
@@ -119,16 +133,26 @@
         <main class="main-content">
             <!-- Mobile Sticky Top Bar -->
             <div class="mobile-top-bar">
-                <button class="mobile-menu-toggle-btn" onclick="toggleMobileSidebar()" title="Menu">
-                    <i class="fa-solid fa-bars-staggered"></i>
-                </button>
-                <div class="mobile-brand-name">
-                    <i class="fa-solid fa-chart-pie text-green"></i>
-                    <span>P99L ADMIN</span>
+                <div class="mobile-brand-group">
+                    <button class="mobile-menu-toggle-btn" onclick="toggleMobileSidebar()" title="Menu">
+                        <i class="fa-solid fa-bars-staggered"></i>
+                    </button>
+                    <div class="mobile-brand-name">
+                        <i class="fa-solid fa-chart-pie text-green"></i>
+                        <span>P99L</span>
+                        <span class="live-pulse-badge"><span class="pulse-dot"></span> LIVE</span>
+                    </div>
                 </div>
-                <a href="https://drive.google.com/drive/folders/1jyxqDx35kg6OrePSnLqLNeyBCAIyUb9m" target="_blank" class="mobile-drive-link" title="Google Drive">
-                    <i class="fa-brands fa-google-drive"></i>
-                </a>
+                
+                <div class="mobile-top-actions">
+                    <div class="currency-toggle-group mobile-curr-switch">
+                        <button class="btn-currency active" id="btn-mob-khr" onclick="setChartCurrency('KHR')">៛</button>
+                        <button class="btn-currency" id="btn-mob-usd" onclick="setChartCurrency('USD')">$</button>
+                    </div>
+                    <a href="https://drive.google.com/drive/folders/1jyxqDx35kg6OrePSnLqLNeyBCAIyUb9m" target="_blank" class="mobile-drive-btn" title="Google Drive">
+                        <i class="fa-brands fa-google-drive"></i>
+                    </a>
+                </div>
             </div>
 
             <!-- Desktop Header -->
@@ -317,33 +341,53 @@
                     </div>
                 </div>
 
-                <!-- Daily Net Summary Table (សរុបស៊ីខាតប្រចាំថ្ងៃ) -->
+                <!-- Daily Net Summary Table & Mobile Cards (សរុបស៊ីខាតប្រចាំថ្ងៃ) -->
                 <div class="glass-card" style="margin-top: 1.5rem;">
                     <div class="chart-header-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <div style="width: 32px; height: 32px; border-radius: 8px; background: #e8f5e9; color: #2e7d32; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
                                 <i class="fa-solid fa-list-check"></i>
                             </div>
-                            <h3 style="margin: 0;">តារាងសរុបស៊ីខាតប្រចាំថ្ងៃ (Daily Net Summary Table)</h3>
+                            <h3 style="margin: 0;">តារាងសរុបស៊ីខាតប្រចាំថ្ងៃ (Daily Net Summary)</h3>
                         </div>
                         
-                        <!-- List box សម្រាប់ជ្រើសរើសប្រភេទឆ្នោត -->
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-weight: 700; color: #0f172a; font-size: 0.88rem;"><i class="fa-solid fa-dice"></i> ជ្រើសរើសប្រភេទឆ្នោត៖</span>
-                            <select id="dash-lottery-dropdown" class="date-select-picker" onchange="onDashLotteryChange(this.value)">
-                                <option value="ALL">🌟 គ្រប់ប្រភេទ (ALL)</option>
-                                <option value="MHSB">⚡ លាភមហាសម្បត្តិ (MHSB)</option>
-                                <option value="MC">🏆 មហាឈ្នះ (MC)</option>
-                                <option value="MT">🏢 មហាទេព (MT)</option>
-                                <option value="KH">🇰🇭 ឆ្នោតខ្មែរ (KH)</option>
-                                <option value="TC">🎁 ទិញឈ្នះ (TC)</option>
-                                <option value="SC">🎯 ឆ្នោត (SC)</option>
-                                <option value="TH">🇹🇭 ឆ្នោត (TH)</option>
-                                <option value="KP">🌊 ឆ្នោត កំពត (KP)</option>
-                            </select>
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <!-- View Mode Toggle (Cards vs Table) -->
+                            <div class="view-mode-toggle-group">
+                                <button class="btn-view-mode active" id="btn-view-cards" onclick="setDailyViewMode('cards')" title="ទម្រង់កាតចល័ត (Mobile Cards)">
+                                    <i class="fa-solid fa-grip"></i> <span class="hide-on-mobile">កាត</span>
+                                </button>
+                                <button class="btn-view-mode" id="btn-view-table" onclick="setDailyViewMode('table')" title="ទម្រង់តារាង (Table View)">
+                                    <i class="fa-solid fa-table"></i> <span class="hide-on-mobile">តារាង</span>
+                                </button>
+                            </div>
+
+                            <!-- List box សម្រាប់ជ្រើសរើសប្រភេទឆ្នោត -->
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <select id="dash-lottery-dropdown" class="date-select-picker" onchange="onDashLotteryChange(this.value)">
+                                    <option value="ALL">🌟 គ្រប់ប្រភេទ (ALL)</option>
+                                    <option value="MHSB">⚡ លាភមហាសម្បត្តិ (MHSB)</option>
+                                    <option value="MC">🏆 មហាឈ្នះ (MC)</option>
+                                    <option value="MT">🏢 មហាទេព (MT)</option>
+                                    <option value="KH">🇰🇭 ឆ្នោតខ្មែរ (KH)</option>
+                                    <option value="TC">🎁 ទិញឈ្នះ (TC)</option>
+                                    <option value="SC">🎯 ឆ្នោត (SC)</option>
+                                    <option value="TH">🇹🇭 ឆ្នោត (TH)</option>
+                                    <option value="KP">🌊 ឆ្នោត កំពត (KP)</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div class="table-responsive" style="max-height: 1220px;">
+
+                    <!-- Mobile Feed: Daily Cards Grid -->
+                    <div id="daily-summary-cards-wrapper" class="daily-cards-grid">
+                        <div id="daily-summary-cards-body" class="daily-cards-container">
+                            <!-- Populated dynamically with rich cards -->
+                        </div>
+                    </div>
+
+                    <!-- Desktop/Table View: Daily Table -->
+                    <div id="daily-summary-table-wrapper" class="table-responsive" style="max-height: 1220px; display: none;">
                         <table class="p99l-green-table">
                             <thead>
                                 <tr class="header-green-bar">
@@ -857,6 +901,6 @@
         </a>
     </nav>
 
-    <script src="app.js?v=21"></script>
+    <script src="app.js?v=23"></script>
 </body>
 </html>

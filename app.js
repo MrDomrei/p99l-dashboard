@@ -257,6 +257,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             showSection('report');
         }
 
+        // Hide Global Loader with smooth transition
+        const loader = document.getElementById('global-loader-overlay');
+        if (loader) {
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                setTimeout(() => loader.style.display = 'none', 400);
+            }, 300);
+        }
+
         window.addEventListener('hashchange', () => {
             const h = window.location.hash.replace('#', '').replace('-section', '');
             if (h === 'dash') showSection('dash');
@@ -756,9 +765,33 @@ function renderDashboardView() {
 
 function setChartCurrency(curr) {
     activeCurrency = curr;
-    document.getElementById('btn-chart-khr').classList.toggle('active', curr === 'KHR');
-    document.getElementById('btn-chart-usd').classList.toggle('active', curr === 'USD');
+    const btnKhr = document.getElementById('btn-chart-khr');
+    const btnUsd = document.getElementById('btn-chart-usd');
+    const btnMobKhr = document.getElementById('btn-mob-khr');
+    const btnMobUsd = document.getElementById('btn-mob-usd');
+
+    if (btnKhr) btnKhr.classList.toggle('active', curr === 'KHR');
+    if (btnUsd) btnUsd.classList.toggle('active', curr === 'USD');
+    if (btnMobKhr) btnMobKhr.classList.toggle('active', curr === 'KHR');
+    if (btnMobUsd) btnMobUsd.classList.toggle('active', curr === 'USD');
+
     renderDashboardView();
+}
+
+let dailyViewMode = 'cards';
+
+function setDailyViewMode(mode) {
+    dailyViewMode = mode;
+    const btnCards = document.getElementById('btn-view-cards');
+    const btnTable = document.getElementById('btn-view-table');
+    const cardsWrapper = document.getElementById('daily-summary-cards-wrapper');
+    const tableWrapper = document.getElementById('daily-summary-table-wrapper');
+
+    if (btnCards) btnCards.classList.toggle('active', mode === 'cards');
+    if (btnTable) btnTable.classList.toggle('active', mode === 'table');
+
+    if (cardsWrapper) cardsWrapper.style.display = mode === 'cards' ? 'block' : 'none';
+    if (tableWrapper) tableWrapper.style.display = mode === 'table' ? 'block' : 'none';
 }
 
 // 2-Bars Per Day Grouped Bar Chart (Bar 1: លុយលក់ | Bar 2: ស៊ីខាត)
@@ -1082,12 +1115,13 @@ function renderLeaderboardWidget() {
     });
 }
 
-// Enhanced Daily Summary Table
+// Enhanced Daily Summary Table & Mobile Cards
 function renderDailySummaryTable(dailySummaryChronological, peakBestDay, peakWorstDay) {
     const tableRows = [...dailySummaryChronological].reverse();
     const tbody = document.getElementById('daily-summary-body');
-    if (!tbody) return;
-    tbody.innerHTML = '';
+    const cardsBody = document.getElementById('daily-summary-cards-body');
+    if (tbody) tbody.innerHTML = '';
+    if (cardsBody) cardsBody.innerHTML = '';
 
     tableRows.forEach((item, idx) => {
         const chronoIndex = dailySummaryChronological.findIndex(d => d.dateStr === item.dateStr);
@@ -1134,23 +1168,78 @@ function renderDailySummaryTable(dailySummaryChronological, peakBestDay, peakWor
             statusBadge = `<span class="badge-best-day"><i class="fa-solid fa-arrow-up"></i> ចំណេញ</span>`;
         }
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td class="text-center font-bold text-blue">${item.dateStr}</td>
-            <td class="text-right font-bold">${Math.round(item.bKhr).toLocaleString()} ៛</td>
-            <td class="text-right font-bold">$${item.bUsd.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-            <td class="text-right ${item.netKhr < 0 ? 'text-red-bold' : ''}">
-                <strong>${Math.round(item.netKhr).toLocaleString()} ៛</strong> ${khrBadgeHtml}
-            </td>
-            <td class="text-right ${item.netUsd < 0 ? 'text-red-bold' : ''}">
-                <strong>$${item.netUsd.toLocaleString(undefined, {minimumFractionDigits: 2})}</strong> ${usdBadgeHtml}
-            </td>
-            <td class="text-center">
-                <span class="pct-badge ${marginRate >= 0 ? 'pct-pos' : 'pct-neg'}">${marginRate >= 0 ? '+' : ''}${marginRate.toFixed(2)}%</span>
-            </td>
-            <td class="text-center">${statusBadge}</td>
-        `;
-        tbody.appendChild(tr);
+        if (tbody) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="text-center font-bold text-blue">${item.dateStr}</td>
+                <td class="text-right font-bold">${Math.round(item.bKhr).toLocaleString()} ៛</td>
+                <td class="text-right font-bold">$${item.bUsd.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td class="text-right ${item.netKhr < 0 ? 'text-red-bold' : ''}">
+                    <strong>${Math.round(item.netKhr).toLocaleString()} ៛</strong> ${khrBadgeHtml}
+                </td>
+                <td class="text-right ${item.netUsd < 0 ? 'text-red-bold' : ''}">
+                    <strong>$${item.netUsd.toLocaleString(undefined, {minimumFractionDigits: 2})}</strong> ${usdBadgeHtml}
+                </td>
+                <td class="text-center">
+                    <span class="pct-badge ${marginRate >= 0 ? 'pct-pos' : 'pct-neg'}">${marginRate >= 0 ? '+' : ''}${marginRate.toFixed(2)}%</span>
+                </td>
+                <td class="text-center">${statusBadge}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        if (cardsBody) {
+            const card = document.createElement('div');
+            const cardTrendClass = item.netKhr >= 0 ? 'pos' : 'neg';
+            const specialClass = isPeakBest ? 'best-day' : (isPeakLoss ? 'neg' : '');
+            card.className = `daily-card ${cardTrendClass} ${specialClass}`;
+
+            let mobileTrendBadge = '';
+            if (chronoIndex > 0) {
+                if (diffKhr > 0) {
+                    mobileTrendBadge = `<span class="daily-card-trend-badge up"><i class="fa-solid fa-arrow-trend-up"></i> ▲ +${Math.round(diffKhr).toLocaleString()} ៛</span>`;
+                } else if (diffKhr < 0) {
+                    mobileTrendBadge = `<span class="daily-card-trend-badge down"><i class="fa-solid fa-arrow-trend-down"></i> ▼ ${Math.round(diffKhr).toLocaleString()} ៛</span>`;
+                } else {
+                    mobileTrendBadge = `<span class="daily-card-trend-badge flat">= ០ ៛</span>`;
+                }
+            } else {
+                mobileTrendBadge = `<span class="daily-card-trend-badge flat">ថ្ងៃដំបូង</span>`;
+            }
+
+            card.innerHTML = `
+                <div class="daily-card-header">
+                    <div class="daily-card-date">
+                        <i class="fa-regular fa-calendar" style="color: #6366f1;"></i>
+                        <span>${item.dateStr}</span>
+                    </div>
+                    <div>${statusBadge}</div>
+                </div>
+                <div class="daily-card-body">
+                    <div class="daily-card-metric-row">
+                        <span class="daily-card-metric-label"><i class="fa-solid fa-cart-shopping" style="color: #6366f1;"></i> លុយលក់</span>
+                        <span class="daily-card-metric-val">
+                            ${Math.round(item.bKhr).toLocaleString()} ៛
+                            <span style="font-size: 0.78rem; color: #64748b; font-weight: 600;">($${item.bUsd.toLocaleString(undefined, {minimumFractionDigits: 2})})</span>
+                        </span>
+                    </div>
+                    <div class="daily-card-metric-row">
+                        <span class="daily-card-metric-label"><i class="fa-solid fa-chart-line" style="color: ${item.netKhr >= 0 ? '#16a34a' : '#dc2626'};"></i> ស៊ីខាត</span>
+                        <span class="daily-card-metric-val ${item.netKhr >= 0 ? 'net-pos' : 'net-neg'}">
+                            ${Math.round(item.netKhr).toLocaleString()} ៛
+                            <span style="font-size: 0.8rem; font-weight: 700;">($${item.netUsd.toLocaleString(undefined, {minimumFractionDigits: 2})})</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="daily-card-footer">
+                    <div>${mobileTrendBadge}</div>
+                    <div>
+                        <span class="pct-badge ${marginRate >= 0 ? 'pct-pos' : 'pct-neg'}">${marginRate >= 0 ? '+' : ''}${marginRate.toFixed(2)}%</span>
+                    </div>
+                </div>
+            `;
+            cardsBody.appendChild(card);
+        }
     });
 }
 
