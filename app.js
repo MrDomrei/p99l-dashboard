@@ -230,13 +230,118 @@ function showSection(sec, event) {
     }
 }
 
+const MONTH_REGISTRY = {
+    '10-2026': {
+        key: '10-2026',
+        label: '📅 ខែតុលា 2026 (October 2026)',
+        shortLabel: '📅 តុលា 10/26',
+        file: 'total_summary_report.json',
+        mKh: 'តុលា',
+        mEn: 'october',
+        mUpper: 'OCTOBER',
+        yStr: '2026',
+        masterExcel: 'p99l_master_database_october_2026.xlsx',
+        monthlyMatrixExcel: 'monthly_net_summary_october_2026.xlsx'
+    },
+    '09-2026': {
+        key: '09-2026',
+        label: '📅 ខែកញ្ញា 2026 (September 2026)',
+        shortLabel: '📅 កញ្ញា 09/26',
+        file: 'total_summary_report_september_2026.json',
+        mKh: 'កញ្ញា',
+        mEn: 'september',
+        mUpper: 'SEPTEMBER',
+        yStr: '2026',
+        masterExcel: 'p99l_master_database_september_2026.xlsx',
+        monthlyMatrixExcel: 'monthly_net_summary_september_2026.xlsx'
+    }
+};
+
+let activeMonthKey = '10-2026';
+
+async function switchMonth(monthKey) {
+    if (!MONTH_REGISTRY[monthKey]) return;
+    activeMonthKey = monthKey;
+
+    const gSelect = document.getElementById('global-month-selector');
+    const mSelect = document.getElementById('mobile-month-selector');
+    if (gSelect) gSelect.value = monthKey;
+    if (mSelect) mSelect.value = monthKey;
+
+    const loader = document.getElementById('global-loader-overlay');
+    const loaderText = document.getElementById('loader-status-text');
+    if (loader) {
+        loader.style.display = 'flex';
+        loader.classList.remove('hidden');
+        if (loaderText) loaderText.innerText = `កំពុងទាញយកទិន្នន័យ ${MONTH_REGISTRY[monthKey].label}...`;
+    }
+
+    try {
+        const fileToFetch = MONTH_REGISTRY[monthKey].file;
+        const response = await fetch(fileToFetch);
+        if (!response.ok) throw new Error('Failed to load ' + fileToFetch);
+        rawData = await response.json();
+
+        selectedDateKey = 'MONTH_AGGREGATE';
+        reportSelectedSuperSenior = 'ALL';
+        reportSelectedDate = rawData.dates_available?.[0] || '01/10/2026';
+        monthlyP3SelectedDate = 'MONTH_AGGREGATE';
+        sangSelectedDateKey = 'ALL_DAYS';
+
+        initSuperSeniorFilter();
+        initDateSelector();
+        initReportFilters();
+        initMonthlyFilters();
+        initSangDateDropdown();
+        loadLevelData();
+
+        const hash = window.location.hash.replace('#', '').replace('-section', '');
+        if (hash === 'monthly-report' || hash === 'monthly') {
+            showSection('monthly-report');
+        } else if (hash === 'sang-report' || hash === 'sang') {
+            showSection('sang-report');
+        } else if (hash === 'table') {
+            showSection('table');
+        } else if (hash === 'report') {
+            showSection('report');
+        } else {
+            showSection('dash');
+        }
+    } catch (err) {
+        console.error('Error switching month:', err);
+        alert('មិនអាចទាញយកទិន្នន័យខែនេះបានឡើយ: ' + err.message);
+    } finally {
+        if (loader) {
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                setTimeout(() => loader.style.display = 'none', 300);
+            }, 300);
+        }
+    }
+}
+
 // Fetch & Initialize Data
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         checkAuthStatus();
 
-        const response = await fetch('total_summary_report.json');
+        // Check URL parameters for month (e.g. ?month=09-2026, ?month=09, ?month=sep, ?month=september)
+        const urlParams = new URLSearchParams(window.location.search);
+        const paramMonth = urlParams.get('month') || '';
+        if (paramMonth.includes('09') || paramMonth.toLowerCase().includes('sep')) {
+            activeMonthKey = '09-2026';
+        } else if (paramMonth.includes('10') || paramMonth.toLowerCase().includes('oct')) {
+            activeMonthKey = '10-2026';
+        }
+
+        const fileToFetch = MONTH_REGISTRY[activeMonthKey]?.file || 'total_summary_report.json';
+        const response = await fetch(fileToFetch);
         rawData = await response.json();
+
+        const gSelect = document.getElementById('global-month-selector');
+        const mSelect = document.getElementById('mobile-month-selector');
+        if (gSelect) gSelect.value = activeMonthKey;
+        if (mSelect) mSelect.value = activeMonthKey;
 
         initSuperSeniorFilter();
         initDateSelector();
@@ -251,10 +356,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             showSection('sang-report');
         } else if (hash === 'table') {
             showSection('table');
-        } else if (hash === 'dash') {
-            showSection('dash');
-        } else {
+        } else if (hash === 'report') {
             showSection('report');
+        } else {
+            showSection('dash');
         }
 
         // Hide Global Loader with smooth transition
@@ -276,9 +381,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         // Search Listener
-        document.getElementById('global-search').addEventListener('input', (e) => {
-            applyFilters();
-        });
+        const globalSearch = document.getElementById('global-search');
+        if (globalSearch) {
+            globalSearch.addEventListener('input', (e) => {
+                searchQuery = e.target.value.toLowerCase().trim();
+                applyFilters();
+            });
+        }
 
     } catch (err) {
         console.error('Error loading report JSON:', err);

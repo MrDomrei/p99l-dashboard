@@ -333,7 +333,10 @@ def update_daily_report(raw_date=None):
             archive_json_path = f'archive/total_summary_report_{prev_m_en}_{target_year_str}.json'
             with open(archive_json_path, 'w', encoding='utf-8') as af:
                 json.dump(main_json, af, ensure_ascii=False, separators=(',', ':'))
-            print(f"📦 Archived previous month ({prev_m_en}) dataset to {archive_json_path}")
+            root_archive_path = f'total_summary_report_{prev_m_en}_{target_year_str}.json'
+            with open(root_archive_path, 'w', encoding='utf-8') as raf:
+                json.dump(main_json, raf, ensure_ascii=False, separators=(',', ':'))
+            print(f"📦 Archived previous month ({prev_m_en}) dataset to {archive_json_path} and {root_archive_path}")
             # Filter reports_obj for current month
             reports_obj = {k: v for k, v in reports_obj.items() if k.endswith(f"/{target_month_num}/{target_year_str}")}
 

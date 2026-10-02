@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="styles.css?v=23">
+    <link rel="stylesheet" href="styles.css?v=24">
 </head>
 <body>
     <!-- Fullscreen Modern Mobile Loading Overlay -->
@@ -145,6 +145,10 @@
                 </div>
                 
                 <div class="mobile-top-actions">
+                    <select id="mobile-month-selector" class="mobile-month-select" onchange="switchMonth(this.value)">
+                        <option value="10-2026">📅 តុលា 10/26</option>
+                        <option value="09-2026">📅 កញ្ញា 09/26</option>
+                    </select>
                     <div class="currency-toggle-group mobile-curr-switch">
                         <button class="btn-currency active" id="btn-mob-khr" onclick="setChartCurrency('KHR')">៛</button>
                         <button class="btn-currency" id="btn-mob-usd" onclick="setChartCurrency('USD')">$</button>
@@ -158,10 +162,16 @@
             <!-- Desktop Header -->
             <header class="top-header">
                 <div class="header-title">
-                    <h1 id="header-main-title">P99L Dashboard - សរុបស៊ីខាតប្រចាំថ្ងៃ (August 2026)</h1>
-                    <p id="header-sub-title">គំនូសតាង (Chart by Date) និង តារាងសរុបស៊ីខាតប្រចាំថ្ងៃ (01 ដល់ 25/08/2026)</p>
+                    <h1 id="header-main-title">P99L Dashboard - សរុបស៊ីខាតប្រចាំថ្ងៃ (October 2026)</h1>
+                    <p id="header-sub-title">គំនូសតាង (Chart by Date) និង តារាងសរុបស៊ីខាតប្រចាំថ្ងៃ</p>
                 </div>
                 <div class="header-actions">
+                    <div class="month-selector-wrapper">
+                        <select id="global-month-selector" class="global-month-select" onchange="switchMonth(this.value)">
+                            <option value="10-2026">📅 ខែតុលា 2026 (October 2026)</option>
+                            <option value="09-2026">📅 ខែកញ្ញា 2026 (September 2026)</option>
+                        </select>
+                    </div>
                     <div class="search-box">
                         <i class="fa-solid fa-magnifying-glass"></i>
                         <input type="text" id="global-search" placeholder="ស្វែងរកតាមកូដ ឬឈ្មោះ...">
@@ -901,6 +911,6 @@
         </a>
     </nav>
 
-    <script src="app.js?v=23"></script>
+    <script src="app.js?v=24"></script>
 </body>
 </html>
