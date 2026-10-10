@@ -60,10 +60,16 @@ def sync_to_all_destinations():
         try:
             os.makedirs(os.path.join(base_dir, '00_Project_And_Antigravity_Backup'), exist_ok=True)
             os.makedirs(os.path.join(base_dir, '01_Master_Databases'), exist_ok=True)
-            os.makedirs(os.path.join(base_dir, '02_Daily_Reports', 'September_2026'), exist_ok=True)
-            os.makedirs(os.path.join(base_dir, '02_Daily_Reports', 'August_2026'), exist_ok=True)
+            os.makedirs(os.path.join(base_dir, '02_Daily_Reports'), exist_ok=True)
             os.makedirs(os.path.join(base_dir, '03_Live_Database'), exist_ok=True)
             os.makedirs(os.path.join(base_dir, '04_Web_Portal'), exist_ok=True)
+
+            # Month name mapping
+            month_names = {
+                '01': 'January', '02': 'February', '03': 'March', '04': 'April',
+                '05': 'May', '06': 'June', '07': 'July', '08': 'August',
+                '09': 'September', '10': 'October', '11': 'November', '12': 'December'
+            }
 
             # 0. Project & Antigravity Backup
             backup_dest = os.path.join(base_dir, '00_Project_And_Antigravity_Backup')
@@ -79,18 +85,19 @@ def sync_to_all_destinations():
                     shutil.rmtree(agents_dest)
                 shutil.copytree(agents_src, agents_dest)
 
-            # 1. Copy Master Databases
-            for f in ['p99l_master_database_september_2026.xlsx', 'monthly_net_summary_september_2026.xlsx', 'p99l_master_database_august_2026.xlsx', 'monthly_net_summary_august_2026.xlsx']:
-                src = os.path.join(project_dir, f)
-                if os.path.exists(src):
-                    shutil.copy2(src, os.path.join(base_dir, '01_Master_Databases', f))
+            # 1. Copy all Master Databases
+            for f in os.listdir(project_dir):
+                if (f.startswith('p99l_master_database_') or f.startswith('monthly_net_summary_')) and f.endswith('.xlsx'):
+                    shutil.copy2(os.path.join(project_dir, f), os.path.join(base_dir, '01_Master_Databases', f))
 
-            # 2. Copy August daily archive
+            # 2. Copy August daily archive if exists
             archive_dir = os.path.join(project_dir, 'archive')
             if os.path.exists(archive_dir):
+                aug_dir = os.path.join(base_dir, '02_Daily_Reports', 'August_2026')
+                os.makedirs(aug_dir, exist_ok=True)
                 for f in os.listdir(archive_dir):
                     if f.startswith('total_summary_report_') and f.endswith('.xlsx'):
-                        shutil.copy2(os.path.join(archive_dir, f), os.path.join(base_dir, '02_Daily_Reports', 'August_2026', f))
+                        shutil.copy2(os.path.join(archive_dir, f), os.path.join(aug_dir, f))
 
             # 3. Copy Live Database & Local Excels
             json_path = os.path.join(project_dir, 'total_summary_report.json')
@@ -98,13 +105,27 @@ def sync_to_all_destinations():
                 shutil.copy2(json_path, os.path.join(base_dir, '03_Live_Database', 'total_summary_report.json'))
                 shutil.copy2(json_path, os.path.join(base_dir, '04_Web_Portal', 'total_summary_report.json'))
 
-            # Copy all daily Excels
+            # Copy all daily Excels into their respective Month folder
             for f in os.listdir(project_dir):
                 if f.startswith('total_summary_report_') and f.endswith('.xlsx'):
                     parts = f.replace('total_summary_report_', '').replace('.xlsx', '').split('_')
                     if len(parts) == 3:
-                        target_month = "September_2026" if parts[1] == '09' else "August_2026"
-                        shutil.copy2(os.path.join(project_dir, f), os.path.join(base_dir, '02_Daily_Reports', target_month, f))
+                        m_num, yr_num = parts[1], parts[2]
+                        m_name = month_names.get(m_num, f"Month_{m_num}")
+                        target_month = f"{m_name}_{yr_num}"
+                        target_m_dir = os.path.join(base_dir, '02_Daily_Reports', target_month)
+                        os.makedirs(target_m_dir, exist_ok=True)
+                        shutil.copy2(os.path.join(project_dir, f), os.path.join(target_m_dir, f))
+
+            # Clean up misplaced files in August if any
+            aug_dir = os.path.join(base_dir, '02_Daily_Reports', 'August_2026')
+            if os.path.exists(aug_dir):
+                for f in os.listdir(aug_dir):
+                    if f.startswith('total_summary_report_') and '_10_' in f:
+                        try:
+                            os.remove(os.path.join(aug_dir, f))
+                        except Exception:
+                            pass
 
             # 4. Copy Web Dashboard Portal files
             for f in ['index.html', 'styles.css', 'app.js']:
