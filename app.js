@@ -231,11 +231,23 @@ function showSection(sec, event) {
 }
 
 const MONTH_REGISTRY = {
+    '11-2026': {
+        key: '11-2026',
+        label: '📅 ខែវិច្ឆិកា 2026 (November 2026)',
+        shortLabel: '📅 វិច្ឆិកា 11/26',
+        file: 'total_summary_report.json',
+        mKh: 'វិច្ឆិកា',
+        mEn: 'november',
+        mUpper: 'NOVEMBER',
+        yStr: '2026',
+        masterExcel: 'p99l_master_database_november_2026.xlsx',
+        monthlyMatrixExcel: 'monthly_net_summary_november_2026.xlsx'
+    },
     '10-2026': {
         key: '10-2026',
         label: '📅 ខែតុលា 2026 (October 2026)',
         shortLabel: '📅 តុលា 10/26',
-        file: 'total_summary_report.json',
+        file: 'total_summary_report_october_2026.json',
         mKh: 'តុលា',
         mEn: 'october',
         mUpper: 'OCTOBER',
@@ -257,7 +269,7 @@ const MONTH_REGISTRY = {
     }
 };
 
-let activeMonthKey = '10-2026';
+let activeMonthKey = '11-2026';
 
 async function switchMonth(monthKey) {
     if (!MONTH_REGISTRY[monthKey]) return;
@@ -325,13 +337,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         checkAuthStatus();
 
-        // Check URL parameters for month (e.g. ?month=09-2026, ?month=09, ?month=sep, ?month=september)
+        // Check URL parameters for month (e.g. ?month=11-2026, ?month=10-2026, ?month=09-2026)
         const urlParams = new URLSearchParams(window.location.search);
         const paramMonth = urlParams.get('month') || '';
         if (paramMonth.includes('09') || paramMonth.toLowerCase().includes('sep')) {
             activeMonthKey = '09-2026';
         } else if (paramMonth.includes('10') || paramMonth.toLowerCase().includes('oct')) {
             activeMonthKey = '10-2026';
+        } else if (paramMonth.includes('11') || paramMonth.toLowerCase().includes('nov')) {
+            activeMonthKey = '11-2026';
+        } else {
+            activeMonthKey = '11-2026';
         }
 
         const fileToFetch = MONTH_REGISTRY[activeMonthKey]?.file || 'total_summary_report.json';
