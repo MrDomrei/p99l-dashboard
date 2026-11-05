@@ -16,6 +16,29 @@ from openpyxl.utils import get_column_letter
 
 ssl_ctx = ssl._create_unverified_context()
 
+# Robust DNS fallback using public DNS (8.8.8.8, 1.1.1.1) if local DNS times out
+import socket
+import subprocess
+
+_orig_getaddrinfo = socket.getaddrinfo
+
+def _fallback_getaddrinfo(host, port, *args, **kwargs):
+    try:
+        return _orig_getaddrinfo(host, port, *args, **kwargs)
+    except socket.gaierror:
+        for dns_server in ['8.8.8.8', '1.1.1.1']:
+            try:
+                res = subprocess.run(['dig', '+short', host, f'@{dns_server}'], capture_output=True, text=True, timeout=5)
+                for line in res.stdout.strip().split('\n'):
+                    line = line.strip()
+                    if line and not line.startswith(';') and not line.startswith('connection') and not line.endswith('.'):
+                        return _orig_getaddrinfo(line, port, *args, **kwargs)
+            except Exception:
+                continue
+        raise
+
+socket.getaddrinfo = _fallback_getaddrinfo
+
 def format_number(val):
     if val is None or val == 0:
         return 0
@@ -282,6 +305,55 @@ def update_daily_report(raw_date=None):
     sang_net_khr = sang_summ.get('winLoseAmountKhr', 0)
     print(f"  ✅ លេខសាង (SuperSenior): Sales={sang_b_khr:,} ៛ | Net={sang_net_khr:,} ៛")
 
+    # Filter out excluded users (e.g. KR family tree)
+    EXCLUDED_PREFIXES = ['KR']
+    def is_excluded_user(u):
+        if not u:
+            return False
+        return str(u).strip().upper().startswith(tuple(EXCLUDED_PREFIXES))
+
+    kr_ss = [s for s in super_senior_data.get('settlements', []) if is_excluded_user(s.get('username'))]
+    kr_item = kr_ss[0] if kr_ss else None
+
+    kr_sang_list = [s for s in super_senior_sang_data.get('settlements', []) if is_excluded_user(s.get('username'))]
+    sang_item = kr_sang_list[0] if kr_sang_list else None
+
+    # Filter settlements across all 4 levels
+    for lvl_dict in [member_data, master_data, senior_data, super_senior_data]:
+        if 'settlements' in lvl_dict:
+            lvl_dict['settlements'] = [s for s in lvl_dict['settlements'] if not is_excluded_user(s.get('username'))]
+
+    if 'settlements' in super_senior_sang_data:
+        super_senior_sang_data['settlements'] = [s for s in super_senior_sang_data['settlements'] if not is_excluded_user(s.get('username'))]
+
+    # Filter super_senior_lotteries & adjust lottery_sales_summary
+    for lot_code, lot_map in list(super_senior_lotteries.items()):
+        for exc_u in list(lot_map.keys()):
+            if is_excluded_user(exc_u):
+                kr_lot = lot_map.pop(exc_u)
+                if lot_code in lottery_sales_summary:
+                    for k in ['sales_khr', 'sales_usd', 'net_khr', 'net_usd', 'b1k', 'b2k', 'b3k', 'b4k', 'b1u', 'b2u', 'b3u', 'b4u']:
+                        lottery_sales_summary[lot_code][k] = round(lottery_sales_summary[lot_code].get(k, 0) - kr_lot.get(k, 0), 2)
+
+    # Adjust summery across all 4 levels
+    if kr_item:
+        for lvl_dict in [member_data, master_data, senior_data, super_senior_data]:
+            s = lvl_dict.get('summery', {})
+            for k in ['betAmount1DKhr', 'betAmount2DKhr', 'betAmount3DKhr', 'betAmount4DKhr', 'betAmount5DKhr',
+                      'com1DKhr', 'com2DKhr', 'com3DKhr', 'com4DKhr', 'com5DKhr',
+                      'winAmount1DKhr', 'winAmount2DKhr', 'winAmount3DKhr', 'winAmount4DKhr', 'winAmount5DKhr',
+                      'rewardAmount1DKhr', 'rewardAmount2DKhr', 'rewardAmount3DKhr', 'rewardAmount4DKhr', 'rewardAmount5DKhr',
+                      'winLoseAmountKhr', 'shareKhr', 'commissionKhr', 'rewardAmountKhr']:
+                if k in s and k in kr_item:
+                    s[k] = round(s.get(k, 0) - kr_item.get(k, 0), 2)
+
+    if sang_item and 'summery' in super_senior_sang_data:
+        ss_sang_summ = super_senior_sang_data['summery']
+        for k in ['betAmount1DKhr', 'betAmount2DKhr', 'betAmount3DKhr', 'betAmount4DKhr', 'betAmount5DKhr',
+                  'winLoseAmountKhr', 'rewardAmountKhr', 'shareKhr']:
+            if k in ss_sang_summ and k in sang_item:
+                ss_sang_summ[k] = round(ss_sang_summ.get(k, 0) - sang_item.get(k, 0), 2)
+
     # 3. Update total_summary_report.json
     main_json_path = os.path.join(os.getcwd(), 'total_summary_report.json')
     if os.path.exists(main_json_path):
@@ -339,6 +411,17 @@ def update_daily_report(raw_date=None):
             print(f"📦 Archived previous month ({prev_m_en}) dataset to {archive_json_path} and {root_archive_path}")
             # Filter reports_obj for current month
             reports_obj = {k: v for k, v in reports_obj.items() if k.endswith(f"/{target_month_num}/{target_year_str}")}
+
+    # Re-chain oldAmountKhr and totalKHR in chronological order
+    sorted_dates_chrono_all = sorted(list(reports_obj.keys()), key=lambda x: datetime.strptime(x, "%d/%m/%Y"))
+    prev_tot = None
+    for d_c in sorted_dates_chrono_all:
+        for lvl_name in ['super_senior', 'senior', 'master', 'member']:
+            s_c = reports_obj[d_c].get(lvl_name, {}).get('summery', {})
+            if prev_tot is not None:
+                s_c['oldAmountKhr'] = prev_tot
+            s_c['totalKHR'] = round((s_c.get('oldAmountKhr', 0) or 0) + (s_c.get('winLoseAmountKhr', 0) or 0), 2)
+        prev_tot = reports_obj[d_c].get('super_senior', {}).get('summery', {}).get('totalKHR')
 
     sorted_dates = sorted(list(reports_obj.keys()), key=lambda x: datetime.strptime(x, "%d/%m/%Y"), reverse=True)
     main_json["reports"] = reports_obj
@@ -518,7 +601,7 @@ def update_daily_report(raw_date=None):
 
         for d_str in sorted_dates_chrono:
             if d_str == target_date_display:
-                settlements = lottery_settlements_map.get(l_code, [])
+                settlements = [s for s in lottery_settlements_map.get(l_code, []) if not is_excluded_user(s.get('username'))]
             else:
                 # If cached from previous master
                 settlements = []
@@ -675,7 +758,7 @@ def update_daily_report(raw_date=None):
             cell.alignment = align_center
             cell.border = grid_border
 
-        settlements = lottery_settlements_map.get(l_code, [])
+        settlements = [s for s in lottery_settlements_map.get(l_code, []) if not is_excluded_user(s.get('username'))]
         append_rows_to_sheet(ws_cfg, target_date_display, l_code, settlements, green_fill, header_font, cell_font, blue_font, red_bold_font, grid_border, align_center, align_left, align_right)
 
         for col_i in range(1, 33):
@@ -729,7 +812,7 @@ def update_daily_report(raw_date=None):
     # 7. Auto-push to GitHub Pages for 24/7 Permanent Web Portal
     try:
         import subprocess
-        subprocess.run(["git", "add", "index.html", "styles.css", "app.js", "total_summary_report.json"], check=False)
+        subprocess.run(["git", "add", "index.html", "styles.css", "app.js", "total_summary_report.json", "total_summary_report_october_2026.json", "total_summary_report_september_2026.json"], check=False)
         subprocess.run(["git", "commit", "-m", f"Auto-update reports for date {target_date_display}"], check=False)
         subprocess.run(["git", "push", "origin", "main"], check=False)
         print("🚀 Auto-pushed latest data to GitHub Pages (Live 24/7 Web Portal) successfully!")

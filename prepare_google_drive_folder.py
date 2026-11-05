@@ -100,10 +100,10 @@ def sync_to_all_destinations():
                         shutil.copy2(os.path.join(archive_dir, f), os.path.join(aug_dir, f))
 
             # 3. Copy Live Database & Local Excels
-            json_path = os.path.join(project_dir, 'total_summary_report.json')
-            if os.path.exists(json_path):
-                shutil.copy2(json_path, os.path.join(base_dir, '03_Live_Database', 'total_summary_report.json'))
-                shutil.copy2(json_path, os.path.join(base_dir, '04_Web_Portal', 'total_summary_report.json'))
+            for f in os.listdir(project_dir):
+                if f.startswith('total_summary_report') and f.endswith('.json'):
+                    shutil.copy2(os.path.join(project_dir, f), os.path.join(base_dir, '03_Live_Database', f))
+                    shutil.copy2(os.path.join(project_dir, f), os.path.join(base_dir, '04_Web_Portal', f))
 
             # Copy all daily Excels into their respective Month folder
             for f in os.listdir(project_dir):
