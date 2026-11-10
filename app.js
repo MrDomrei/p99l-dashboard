@@ -190,6 +190,7 @@ function showSection(sec, event) {
     document.getElementById('table-section').style.display = 'none';
 
     const mInfo = getActiveMonthInfo();
+    document.title = `P99L Admin - Dashboard & Report (${mInfo.mUpper} ${mInfo.yStr})`;
     const datesArr = rawData?.dates_available || [];
     const dateRangeStr = datesArr.length > 0 
         ? `${datesArr[datesArr.length - 1]} ដល់ ${datesArr[0]}` 
